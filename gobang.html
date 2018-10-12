@@ -10,14 +10,14 @@
   <title>Document</title>
   <style>
     .control {
-      width: 300px;
+      min-width: 400px;
       margin: 20px auto;
       text-align: center
     }
 
     .box {
-      width: 800px;
-      height: 800px;
+      min-width: 800px;
+      min-height: 800px;
       margin: 100px auto;
     }
 
@@ -81,8 +81,6 @@
 <body>
 
   <div class="box">
-
-    <div class="cheer"></div>
   </div>
 </body>
 
@@ -97,6 +95,7 @@
       this.white = {}
       this.step = []
       this.pointer = -1
+      this.isEnd = false
       this.isBlackStart = isBlackStart
       this.isBlackTurn = isBlackStart
       this.el = document.querySelector(el)
@@ -105,6 +104,7 @@
     init() {
       let boxHtml = `
       <div class="control">
+      <button class='replay'>重新开始</button>
       <button class='retract'>悔棋</button>
       <button class="cancelRetract">撤销悔棋</button>
     </div>
@@ -113,8 +113,6 @@
       for (let i = 0; i < this.size; i++) {
         let lineHtml = '<div class="line">'
         for (let j = 0; j < this.size; j++) {
-          this.black[`${i}-${j}`] = false
-          this.white[`${i}-${j}`] = false
           lineHtml += `
         <div class="bg">
           <div class='item'  row=${i} col=${j}></div>
@@ -139,14 +137,32 @@
       this.el.querySelector('.cancelRetract').addEventListener('click', () => {
         this.cancelRetract()
       })
+      this.el.querySelector('.replay').addEventListener('click', () => {
+        this.replay()
+      })
     }
-
+    replay() {
+      for (let p in this.black) {
+        let position = p.split('-')
+        this.action(position[0], position[1], 0)
+      }
+      for (let p in this.white) {
+        let position = p.split('-')
+        this.action(position[0], position[1], 0)
+      }
+      this.black = {}
+      this.white = {}
+      this.step = []
+      this.pointer = -1
+      this.isEnd = false
+    }
     action(i, j, type) {
       let item = document.querySelectorAll('.line')[i].querySelectorAll('.item')[j]
       item.setAttribute('class', type === 0 ? 'item' : type > 0 ? 'item black' : 'item white')
 
     }
     todo(i, j) {
+      if (this.isEnd) return
       let p = `${i}-${j}`
       if (this.black[p] || this.white[p]) return
       if (this.pointer !== this.step.length - 1) {
@@ -154,15 +170,40 @@
       }
       this.action(i, j, this.isBlackTurn ? 1 : -1)
       this[this.isBlackTurn ? 'black' : 'white'][`${i}-${j}`] = true
-      console.log(this.black, this.white)
       this.pointer++
       this.step.push(p)
+      if (this.judge()) {
+        console.log(`-------------------------${this.isBlackTurn ? '黑胜' : '白胜'}----------------------------`)
+        this.isEnd = true
+        return
+      }
 
       this.isBlackTurn = !this.isBlackTurn
-      console.log(this.step, this.pointer)
+      console.log(this.isBlackTurn ? '黑走' : '白走')
     }
+    judge() {
+      let position = this.step[this.pointer].split('-')
+      let i = +position[0]
+      let j = +position[1]
+      let data = this[this.isBlackTurn ? 'black' : 'white']
+
+      for (let n = 0; n < 5; n++) {
+        let il = [i - 4, i - 3, i - 2, i - 1, i, i + 1, i + 2, i + 3, i + 4]
+        let jl = [j - 4, j - 3, j - 2, j - 1, j, j + 1, j + 2, j + 3, j + 4]
+        // -
+        if (data[`${i}-${jl[n + 0]}`] && data[`${i}-${jl[n + 1]}`] && data[`${i}-${jl[n + 2]}`] && data[`${i}-${jl[n + 3]}`] && data[`${i}-${jl[n + 4]}`]) return true
+        // |
+        if (data[`${il[n + 0]}-${j}`] && data[`${il[n + 1]}-${j}`] && data[`${il[n + 2]}-${j}`] && data[`${il[n + 3]}-${j}`] && data[`${il[n + 4]}-${j}`]) return true
+        // \
+        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
+        // /
+        il = il.reverse()
+        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
+      }
+    }
+
     retract() {
-      if (this.pointer < 0) return
+      if (this.pointer < 0 || this.isEnd) return
       let p = this.step[this.pointer].split('-')
       this.pointer--
       this.action(p[0], p[1], 0)
@@ -173,11 +214,10 @@
       }
       this.isBlackTurn = !this.isBlackTurn
       console.log(this.isBlackTurn ? '黑走' : '白走')
-      console.log(this.black, this.white)
-      console.log(this.step, this.pointer)
+      // console.log(this.black, this.white)
     }
     cancelRetract() {
-      if (this.pointer === this.step.length - 1) return
+      if (this.pointer === this.step.length - 1 || this.isEnd) return
       this.pointer++
       let p = this.step[this.pointer].split('-')
       if (this.isBlackStart) {
@@ -188,8 +228,6 @@
       } else {
         this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`] = true
       }
-      console.log(this.black, this.white)
-      console.log(this.step, this.pointer)
       this.isBlackTurn = !this.isBlackTurn
       console.log(this.isBlackTurn ? '黑走' : '白走')
     }
