@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible"
+    content="ie=edge">
+  <title>Document</title>
+  <style>
+    .control {
+      width: 300px;
+      margin: 20px auto;
+      text-align: center
+    }
+
+    .box {
+      width: 800px;
+      height: 800px;
+      margin: 100px auto;
+    }
+
+    .line {
+      display: flex;
+      justify-content: center
+    }
+
+    .bg {
+      height: 40px;
+      width: 40px;
+      /* border: 1px solid #666; */
+      position: relative;
+      overflow: hidden;
+
+    }
+
+    .bg .item {
+      height: 30px;
+      width: 30px;
+      /* background: red; */
+      border-radius: 50%;
+      margin: 5px auto;
+      cursor: pointer;
+      position: relative;
+      z-index: 3;
+
+    }
+
+    .item.black {
+      background: #333;
+      box-shadow: 0 0 10px #555
+    }
+
+    .item.white {
+      background: #fff;
+      box-shadow: 0 0 10px #555
+    }
+
+    .bg::before {
+      content: '';
+      border-bottom: 1px solid #666;
+      width: 40px;
+      position: absolute;
+      top: 20px;
+      left: 0;
+    }
+
+    .bg::after {
+      content: '';
+      border-left: 1px solid #666;
+      height: 40px;
+      position: absolute;
+      top: 0;
+      left: 20px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+
+    <div class="cheer"></div>
+  </div>
+</body>
+
+<script>
+
+
+
+
+  class Gobang {
+    constructor(el, size, isBlackStart) {
+      this.black = {}
+      this.white = {}
+      this.step = []
+      this.pointer = -1
+      this.isBlackStart = isBlackStart
+      this.isBlackTurn = isBlackStart
+      this.el = document.querySelector(el)
+      this.size = size
+    }
+    init() {
+      let boxHtml = `
+      <div class="control">
+      <button class='retract'>悔棋</button>
+      <button class="cancelRetract">撤销悔棋</button>
+    </div>
+    <div class='cheer'>
+      `
+      for (let i = 0; i < this.size; i++) {
+        let lineHtml = '<div class="line">'
+        for (let j = 0; j < this.size; j++) {
+          this.black[`${i}-${j}`] = false
+          this.white[`${i}-${j}`] = false
+          lineHtml += `
+        <div class="bg">
+          <div class='item'  row=${i} col=${j}></div>
+        </div>
+      `
+        }
+        lineHtml += '</div></div>'
+        boxHtml += lineHtml
+      }
+      this.el.innerHTML = boxHtml
+      this.el.addEventListener('click', (e) => {
+        if (e.target.classList.value.includes('item')) {
+          let i = e.target.getAttribute('row')
+          let j = e.target.getAttribute('col')
+          let position = `${i}-${j}`
+          this.todo(i, j)
+        }
+      }, true)
+      this.el.querySelector('.retract').addEventListener('click', () => {
+        this.retract()
+      })
+      this.el.querySelector('.cancelRetract').addEventListener('click', () => {
+        this.cancelRetract()
+      })
+    }
+
+    action(i, j, type) {
+      let item = document.querySelectorAll('.line')[i].querySelectorAll('.item')[j]
+      item.setAttribute('class', type === 0 ? 'item' : type > 0 ? 'item black' : 'item white')
+
+    }
+    todo(i, j) {
+      let p = `${i}-${j}`
+      if (this.black[p] || this.white[p]) return
+      if (this.pointer !== this.step.length - 1) {
+        this.step = this.step.slice(0, this.pointer + 1)
+      }
+      this.action(i, j, this.isBlackTurn ? 1 : -1)
+      this[this.isBlackTurn ? 'black' : 'white'][`${i}-${j}`] = true
+      console.log(this.black, this.white)
+      this.pointer++
+      this.step.push(p)
+
+      this.isBlackTurn = !this.isBlackTurn
+      console.log(this.step, this.pointer)
+    }
+    retract() {
+      if (this.pointer < 0) return
+      let p = this.step[this.pointer].split('-')
+      this.pointer--
+      this.action(p[0], p[1], 0)
+      if (this.isBlackStart) {
+        this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`] = false
+      } else {
+        this[this.pointer % 2 === 0 ? 'black' : 'white'][`${p[0]}-${p[1]}`] = false
+      }
+      this.isBlackTurn = !this.isBlackTurn
+      console.log(this.isBlackTurn ? '黑走' : '白走')
+      console.log(this.black, this.white)
+      console.log(this.step, this.pointer)
+    }
+    cancelRetract() {
+      if (this.pointer === this.step.length - 1) return
+      this.pointer++
+      let p = this.step[this.pointer].split('-')
+      if (this.isBlackStart) {
+        this.action(p[0], p[1], this.pointer % 2 === 0 ? 1 : -1)
+      }
+      if (this.isBlackStart) {
+        this[this.pointer % 2 === 0 ? 'black' : 'white'][`${p[0]}-${p[1]}`] = true
+      } else {
+        this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`] = true
+      }
+      console.log(this.black, this.white)
+      console.log(this.step, this.pointer)
+      this.isBlackTurn = !this.isBlackTurn
+      console.log(this.isBlackTurn ? '黑走' : '白走')
+    }
+  }
+
+  const gobang = new Gobang('.box', 20, true)
+  gobang.init()
+
+
+
+</script>
+
+</html>
