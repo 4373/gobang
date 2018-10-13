@@ -35,7 +35,7 @@
 
     }
 
-    .bg .item {
+    .item {
       height: 30px;
       width: 30px;
       /* background: red; */
@@ -44,17 +44,34 @@
       cursor: pointer;
       position: relative;
       z-index: 3;
+      color: olive
+    }
 
+    .item:hover::before {
+      content: attr(row);
+      position: absolute;
+      top: 7px;
+      left: -5px
+    }
+
+    .item:hover::after {
+      content: attr(col);
+      text-align: right;
+      position: absolute;
+      top: 7px;
+      left: 20px
     }
 
     .item.black {
-      background: #333;
-      box-shadow: 0 0 10px #555
+      background: #000;
+      box-shadow: 0 0 10px #ddd;
+      cursor: not-allowed;
     }
 
     .item.white {
       background: #fff;
-      box-shadow: 0 0 10px #555
+      box-shadow: 0 0 10px #555;
+      cursor: not-allowed;
     }
 
     .bg::before {
@@ -75,6 +92,21 @@
       left: 20px;
     }
 
+    .info {
+      margin-left: 20px;
+      padding: 5px;
+      background: #333;
+      color: white;
+      border-radius: 5px;
+      box-shadow: 0 0 10px #555
+    }
+
+    .info.active {
+      background: white;
+      color: #333;
+
+    }
+
   </style>
 </head>
 
@@ -83,12 +115,7 @@
   <div class="box">
   </div>
 </body>
-
 <script>
-
-
-
-
   class Gobang {
     constructor(el, size, isBlackStart) {
       this.black = {}
@@ -104,11 +131,12 @@
     init() {
       let boxHtml = `
       <div class="control">
-      <button class='replay'>重新开始</button>
-      <button class='retract'>悔棋</button>
-      <button class="cancelRetract">撤销悔棋</button>
-    </div>
-    <div class='cheer'>
+        <button class='replay'>重新开始</button>
+        <button class='retract'>悔棋</button>
+        <button class="cancelRetract">撤销悔棋</button>
+        <span class='info'>${this.isBlackStart ? '黒棋下子' : '白棋下子'}</span>
+      </div>
+      <div class='cheer'>
       `
       for (let i = 0; i < this.size; i++) {
         let lineHtml = '<div class="line">'
@@ -123,12 +151,15 @@
         boxHtml += lineHtml
       }
       this.el.innerHTML = boxHtml
+      let info = this.el.querySelector('.info')
       this.el.addEventListener('click', (e) => {
         if (e.target.classList.value.includes('item')) {
           let i = e.target.getAttribute('row')
           let j = e.target.getAttribute('col')
           let position = `${i}-${j}`
           this.todo(i, j)
+          info.innerHTML = this.isBlackTurn ? '黒棋下子' : '白棋下子'
+          info.setAttribute('class', this.isBlackTurn ? 'info' : 'info active')
         }
       }, true)
       this.el.querySelector('.retract').addEventListener('click', () => {
@@ -155,16 +186,39 @@
       this.step = []
       this.pointer = -1
       this.isEnd = false
+      this.isBlackTurn = this.isBlackStart
+      let info = this.el.querySelector('.info')
+      info.innerHTML = this.isBlackTurn ? '黒棋下子' : '白棋下子'
+      info.setAttribute('class', this.isBlackTurn ? 'info' : 'info active')
     }
     action(i, j, type) {
       let item = document.querySelectorAll('.line')[i].querySelectorAll('.item')[j]
       item.setAttribute('class', type === 0 ? 'item' : type > 0 ? 'item black' : 'item white')
+    }
+    judge(data, position) {
+      let i = +position[0]
+      let j = +position[1]
 
+      for (let n = 0; n < 5; n++) {
+        let il = [i - 4, i - 3, i - 2, i - 1, i, i + 1, i + 2, i + 3, i + 4]
+        let jl = [j - 4, j - 3, j - 2, j - 1, j, j + 1, j + 2, j + 3, j + 4]
+        // - 横向是否有五子
+        if (data[`${i}-${jl[n + 0]}`] && data[`${i}-${jl[n + 1]}`] && data[`${i}-${jl[n + 2]}`] && data[`${i}-${jl[n + 3]}`] && data[`${i}-${jl[n + 4]}`]) return true
+        // | 竖向是否有五子
+        if (data[`${il[n + 0]}-${j}`] && data[`${il[n + 1]}-${j}`] && data[`${il[n + 2]}-${j}`] && data[`${il[n + 3]}-${j}`] && data[`${il[n + 4]}-${j}`]) return true
+        // \ 反斜是否有五子
+        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
+        // /正斜是否有五子
+        il = il.reverse()
+        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
+      }
+      return false
     }
     todo(i, j) {
       if (this.isEnd) return
       let p = `${i}-${j}`
       if (this.black[p] || this.white[p]) return
+      // 如果指针不在最后，截取历史
       if (this.pointer !== this.step.length - 1) {
         this.step = this.step.slice(0, this.pointer + 1)
       }
@@ -172,35 +226,15 @@
       this[this.isBlackTurn ? 'black' : 'white'][`${i}-${j}`] = true
       this.pointer++
       this.step.push(p)
-      if (this.judge()) {
-        console.log(`-------------------------${this.isBlackTurn ? '黑胜' : '白胜'}----------------------------`)
+      if (this.judge(this[this.isBlackTurn ? 'black' : 'white'], [i, j])) {
+        alert(`${this.isBlackTurn ? '黑胜' : '白胜'}`)
         this.isEnd = true
-        return
       }
 
       this.isBlackTurn = !this.isBlackTurn
-      console.log(this.isBlackTurn ? '黑走' : '白走')
+      this.console()
     }
-    judge() {
-      let position = this.step[this.pointer].split('-')
-      let i = +position[0]
-      let j = +position[1]
-      let data = this[this.isBlackTurn ? 'black' : 'white']
 
-      for (let n = 0; n < 5; n++) {
-        let il = [i - 4, i - 3, i - 2, i - 1, i, i + 1, i + 2, i + 3, i + 4]
-        let jl = [j - 4, j - 3, j - 2, j - 1, j, j + 1, j + 2, j + 3, j + 4]
-        // -
-        if (data[`${i}-${jl[n + 0]}`] && data[`${i}-${jl[n + 1]}`] && data[`${i}-${jl[n + 2]}`] && data[`${i}-${jl[n + 3]}`] && data[`${i}-${jl[n + 4]}`]) return true
-        // |
-        if (data[`${il[n + 0]}-${j}`] && data[`${il[n + 1]}-${j}`] && data[`${il[n + 2]}-${j}`] && data[`${il[n + 3]}-${j}`] && data[`${il[n + 4]}-${j}`]) return true
-        // \
-        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
-        // /
-        il = il.reverse()
-        if (data[`${il[n + 0]}-${jl[n + 0]}`] && data[`${il[n + 1]}-${jl[n + 1]}`] && data[`${il[n + 2]}-${jl[n + 2]}`] && data[`${il[n + 3]}-${jl[n + 3]}`] && data[`${il[n + 4]}-${jl[n + 4]}`]) return true
-      }
-    }
 
     retract() {
       if (this.pointer < 0 || this.isEnd) return
@@ -208,13 +242,26 @@
       this.pointer--
       this.action(p[0], p[1], 0)
       if (this.isBlackStart) {
-        this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`] = false
+        delete this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`]
       } else {
-        this[this.pointer % 2 === 0 ? 'black' : 'white'][`${p[0]}-${p[1]}`] = false
+        delete this[this.pointer % 2 === 0 ? 'black' : 'white'][`${p[0]}-${p[1]}`]
       }
       this.isBlackTurn = !this.isBlackTurn
+      this.console()
+    }
+    console() {
+      console.clear()
+      console.group('black')
+      console.table(this.black)
+      console.groupEnd()
+      console.group('white')
+      console.table(this.white)
+      console.groupEnd()
+      console.group('history')
+      console.table(this.step)
+      console.groupEnd()
+      console.log('pointer', this.pointer)
       console.log(this.isBlackTurn ? '黑走' : '白走')
-      // console.log(this.black, this.white)
     }
     cancelRetract() {
       if (this.pointer === this.step.length - 1 || this.isEnd) return
@@ -229,7 +276,7 @@
         this[this.pointer % 2 === 0 ? 'white' : 'black'][`${p[0]}-${p[1]}`] = true
       }
       this.isBlackTurn = !this.isBlackTurn
-      console.log(this.isBlackTurn ? '黑走' : '白走')
+      this.console()
     }
   }
 
