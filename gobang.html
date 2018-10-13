@@ -158,8 +158,6 @@
           let j = e.target.getAttribute('col')
           let position = `${i}-${j}`
           this.todo(i, j)
-          info.innerHTML = this.isBlackTurn ? '黒棋下子' : '白棋下子'
-          info.setAttribute('class', this.isBlackTurn ? 'info' : 'info active')
         }
       }, true)
       this.el.querySelector('.retract').addEventListener('click', () => {
@@ -187,13 +185,14 @@
       this.pointer = -1
       this.isEnd = false
       this.isBlackTurn = this.isBlackStart
-      let info = this.el.querySelector('.info')
-      info.innerHTML = this.isBlackTurn ? '黒棋下子' : '白棋下子'
-      info.setAttribute('class', this.isBlackTurn ? 'info' : 'info active')
+
     }
     action(i, j, type) {
-      let item = document.querySelectorAll('.line')[i].querySelectorAll('.item')[j]
+      let item = this.el.querySelectorAll('.line')[i].querySelectorAll('.item')[j]
       item.setAttribute('class', type === 0 ? 'item' : type > 0 ? 'item black' : 'item white')
+      let info = this.el.querySelector('.info')
+      info.innerHTML = this.isBlackTurn ? '白棋下子' : '黑棋下子'
+      info.setAttribute('class', this.isBlackTurn ? 'info active' : 'info')
     }
     judge(data, position) {
       let i = +position[0]
@@ -282,7 +281,12 @@
 
   const gobang = new Gobang('.box', 20, true)
   gobang.init()
-
+  // let time = setInterval(() => {
+  //   let i = Math.floor(Math.random() * 20)
+  //   let j = Math.floor(Math.random() * 20)
+  //   gobang.todo(i, j)
+  //   if (gobang.isEnd) clearInterval(time)
+  // }, 10)
 
 
 </script>
