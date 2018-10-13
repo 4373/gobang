@@ -38,32 +38,39 @@
     .item {
       height: 30px;
       width: 30px;
-      /* background: red; */
       border-radius: 50%;
       margin: 5px auto;
       cursor: pointer;
       position: relative;
       z-index: 3;
-      color: olive
+      color: #fff;
+      text-align: center
     }
 
     .item:hover::before {
       content: attr(row);
+      width: 22px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px;
       position: absolute;
+      z-index: 5;
       top: 7px;
-      left: -5px
+      left: -10px
     }
 
     .item:hover::after {
       content: attr(col);
-      text-align: right;
+      width: 22px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px;
       position: absolute;
+      z-index: 5;
       top: 7px;
-      left: 20px
+      right: -10px
     }
 
     .item.black {
-      background: #000;
+      background: #333;
       box-shadow: 0 0 10px #ddd;
       cursor: not-allowed;
     }
